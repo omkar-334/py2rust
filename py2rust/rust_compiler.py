@@ -170,6 +170,41 @@ edition = "2021"
             self.logger.error(f"Error: {e}")
             return False
     
+    def compile_and_get_errors(self, project_dir: Path) -> tuple[bool, str]:
+        """Compile project and return success status and error messages."""
+        try:
+            # Quick syntax check first
+            check_result = subprocess.run(
+                ['cargo', 'check'], cwd=project_dir, capture_output=True, text=True, timeout=300
+            )
+            
+            if check_result.returncode == 0:
+                # Try full build
+                build_result = subprocess.run(
+                    ['cargo', 'build'], cwd=project_dir, capture_output=True, text=True, timeout=600
+                )
+                
+                if build_result.returncode == 0:
+                    self.logger.info("✅ Compilation successful!")
+                    return True, ""
+                else:
+                    error_msg = build_result.stderr or build_result.stdout
+                    self.logger.error(f"Build failed: {error_msg}")
+                    return False, error_msg
+            else:
+                error_msg = check_result.stderr or check_result.stdout
+                self.logger.error(f"Syntax check failed: {error_msg}")
+                return False, error_msg
+                
+        except subprocess.TimeoutExpired:
+            error_msg = "Compilation timed out"
+            self.logger.error(error_msg)
+            return False, error_msg
+        except Exception as e:
+            error_msg = f"Compilation error: {e}"
+            self.logger.error(error_msg)
+            return False, error_msg
+    
     def _run_tests(self, project_dir: Path) -> bool:
         """Run tests."""
         try:

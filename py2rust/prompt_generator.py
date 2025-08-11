@@ -38,12 +38,17 @@ CONVERSION GUIDELINES:
    - Propagate errors with ? operator
 
 5. DEPENDENCIES:
-   - Use appropriate Rust crates:
-     * serde for JSON serialization
-     * reqwest for HTTP requests
-     * clap for CLI parsing
-     * tokio for async/await
-     * anyhow for error handling
+   - Use only well-tested, stable Rust crates with CORRECT features:
+     * serde = { version = "1.0", features = ["derive"] }
+     * serde_json = "1.0" (separate crate for JSON)
+     * reqwest = { version = "0.11", features = ["json"] }
+     * clap = { version = "4.0", features = ["derive"] }
+     * tokio = { version = "1.0", features = ["full"] }
+     * anyhow = "1.0"
+     * rand = "0.8" (NOT "random")
+   - For GUI: Use simple libraries like eframe/egui = "0.20"
+   - NEVER use non-existent features like "fltk-theme", "macros", "gzip"
+   - ALWAYS verify features exist before using them
 
 6. PROJECT STRUCTURE:
    - Create proper Cargo.toml with dependencies

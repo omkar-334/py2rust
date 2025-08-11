@@ -83,30 +83,7 @@ jobs:
           --output-dir "../projects/${PROJECT_NAME}" \
           --verbose
     
-    - name: Fix common Rust import issues
-      run: |
-        PROJECT_NAME=$(basename "${{ inputs.python_repo_url }}" .git)
-        PROJECT_DIR="projects/${PROJECT_NAME}"
-        
-        echo "🔧 Checking for common import issues..."
-        
-        # Check if main.rs has import errors
-        if [ -f "$PROJECT_DIR/src/main.rs" ]; then
-          # Fix common import patterns
-          sed -i 's/use converted_project::/use crate::/g' "$PROJECT_DIR/src/main.rs"
-          sed -i 's/use [a-zA-Z_][a-zA-Z0-9_]*::game::/use crate::/g' "$PROJECT_DIR/src/main.rs"
-          
-          echo "✅ Fixed potential import issues in main.rs"
-        fi
-        
-        # Try a quick compile check
-        cd "$PROJECT_DIR"
-        if ! cargo check --quiet 2>/dev/null; then
-          echo "⚠️ Still has compilation issues, but continuing..."
-        else
-          echo "✅ Compilation check passed!"
-        fi
-        cd ../..
+
     
     - name: Clean up build artifacts and add gitignore
       run: |
@@ -240,7 +217,7 @@ jobs:
         
         # Create Pull Request using GitHub CLI
         gh pr create \
-          --title "🦀 Convert ${PROJECT_NAME} from Python to Rust ${BUILD_STATUS}" \
+          --title "🦀 Convert ${PROJECT_NAME} to Rust ${BUILD_STATUS}" \
           --body "**Automated Python-to-Rust conversion using Gemini 2.5 Pro**
 
         ## Build Status: ${BUILD_STATUS}
@@ -252,24 +229,6 @@ jobs:
         - **Project**: \`projects/${PROJECT_NAME}/\`
         - **Generated**: $(date -u)
         - **Build Status**: ${BUILD_STATUS}"
-
-        ## Structure
-        \`\`\`
-        projects/${PROJECT_NAME}/
-        ├── python/       # Git submodule → ${{ inputs.python_repo_url }}
-        ├── src/          # Generated Rust source code
-        ├── Cargo.toml    # Rust project configuration
-        ├── .gitignore    # Excludes build artifacts
-        └── target/       # Build artifacts (excluded from git)
-        \`\`\`
-
-        ## Features
-        - ✅ Complete Rust project with proper Cargo.toml
-        - ✅ Idiomatic Rust code using ownership system
-        - ✅ Error handling with Result<T, E>
-        - ✅ Automatic compilation and testing
-        - ✅ Clean project structure
-        - ✅ Git submodule integration
 
         $(if [ -n \"${BUILD_ERRORS:-}\" ]; then
           echo \"## Build Errors\"
