@@ -15,10 +15,11 @@ import logging
 import shutil
 from pathlib import Path
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 from repo_ingester import ingest_python_repo
-from prompt_generator import generate_conversion_prompt
+from prompt_generator import generate_conversion_prompt, SYSTEM_PROMPT
 from rust_compiler import RustCompiler
 
 
@@ -41,16 +42,22 @@ def convert_with_gemini(prompt: str) -> str:
     if not api_key:
         raise ValueError("GEMINI_API_KEY environment variable not set")
     
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel('gemini-1.5-pro-002')
+    # Initialize the new Gemini client
+    client = genai.Client(api_key=api_key)
     
-    response = model.generate_content(
-        prompt,
-        generation_config={
-            'temperature': 0.1,
-            'top_p': 0.95,
-            'max_output_tokens': 32768,
-        }
+    # Configure generation parameters with system instructions
+    config = types.GenerateContentConfig(
+        system_instruction=SYSTEM_PROMPT,
+        temperature=0.1,
+        top_p=0.95,
+        max_output_tokens=65536,
+        thinking_config=types.ThinkingConfig(thinking_budget=0)  # Disable thinking for faster response
+    )
+    
+    response = client.models.generate_content(
+        model="gemini-2.5-pro",
+        contents=prompt,
+        config=config
     )
     
     if not response.text:

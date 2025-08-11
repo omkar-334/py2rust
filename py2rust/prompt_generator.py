@@ -79,13 +79,11 @@ Include ALL necessary files for a complete, compilable Rust project."""
 
 
 def generate_conversion_prompt(python_files: List[PythonFile]) -> str:
-    """Generate conversion prompt for Gemini."""
+    """Generate conversion prompt for Gemini (system prompt is handled separately)."""
     if not python_files:
         raise ValueError("No Python files provided")
     
     prompt_parts = [
-        SYSTEM_PROMPT,
-        "",
         "=" * 80,
         "PYTHON PROJECT TO CONVERT:",
         "=" * 80,

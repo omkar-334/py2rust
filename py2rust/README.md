@@ -4,7 +4,7 @@ Minimal tool that converts Python repositories to Rust using Google Gemini AI.
 
 ## Features
 
-- 🤖 **Gemini-Powered**: Uses Google Gemini 1.5 Pro for intelligent code conversion
+- 🤖 **Gemini-Powered**: Uses Google Gemini 2.5 Pro for intelligent code conversion
 - 🦀 **Complete Projects**: Generates compilable Rust code with proper Cargo.toml
 - ✅ **Auto Testing**: Compiles, tests, formats, and lints generated code
 - 📁 **Simple Ingestion**: Finds all Python files (excludes test/docs folders)
@@ -97,7 +97,7 @@ your-repo/
 1. **Clones** Python repository (GitHub workflow handles this)
 2. **Ingests** Python files from local directory
 3. **Generates** comprehensive prompt with all Python code
-4. **Converts** using Gemini 1.5 Pro with Rust best practices
+4. **Converts** using Gemini 2.5 Pro with Rust best practices
 5. **Compiles** with `cargo build` and runs tests
 6. **Formats** with `cargo fmt` and lints with `cargo clippy`
 7. **Organizes** output with both Python source and Rust project
@@ -125,12 +125,14 @@ python main.py ./python-project --skip-compilation --dry-run
 
 **"No Python files found"** → Check repository has .py files outside test/docs folders
 
-## Why Gemini?
+## Why Gemini 2.5 Pro?
 
-- ✅ Large context window (1M+ tokens)
-- ✅ Excellent code generation
-- ✅ Lower cost than alternatives
-- ✅ Good Rust conversion quality
+- ✅ Latest model with best code generation  
+- ✅ Massive context window (1M+ tokens)
+- ✅ High output limit (65K tokens)
+- ✅ System instructions for better guidance
+- ✅ Optimized thinking mode for faster responses
+- ✅ Structured outputs and advanced capabilities
 
 ## Project Structure
 
