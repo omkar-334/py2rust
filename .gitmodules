@@ -1,3 +1,6 @@
 [submodule "projects/py-tic-tac-toe/python"]
 	path = projects/py-tic-tac-toe/python
 	url = https://github.com/FahimFBA/py-tic-tac-toe
+[submodule "projects/Streaming-Video-Server-and-Client/python"]
+	path = projects/Streaming-Video-Server-and-Client/python
+	url = https://github.com/DiHuang92/Streaming-Video-Server-and-Client
