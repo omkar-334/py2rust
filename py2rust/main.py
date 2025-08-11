@@ -49,7 +49,7 @@ def convert_with_gemini(prompt: str) -> str:
         generation_config={
             'temperature': 0.1,
             'top_p': 0.95,
-            'max_output_tokens': 100000,
+            'max_output_tokens': 32768,
         }
     )
     
