@@ -1,3 +1,6 @@
 [submodule "projects/py-tic-tac-toe/python"]
 	path = projects/py-tic-tac-toe/python
 	url = https://github.com/FahimFBA/py-tic-tac-toe
+[submodule "projects/Simple-Calculator/python"]
+	path = projects/Simple-Calculator/python
+	url = https://github.com/psarkerbd/Simple-Calculator
