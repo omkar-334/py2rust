@@ -1,0 +1,99 @@
+name: Convert Python to Rust
+
+on:
+  workflow_dispatch:
+    inputs:
+      python_repo_url:
+        description: 'Python GitHub repository URL to convert'
+        required: true
+        type: string
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout converter repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rustfmt, clippy
+    
+    - name: Extract repository name
+      id: extract_name
+      run: |
+        PROJECT_NAME=$(basename "${{ inputs.python_repo_url }}" .git)
+        echo "project_name=${PROJECT_NAME}" >> $GITHUB_OUTPUT
+        echo "Converting: ${{ inputs.python_repo_url }}"
+        echo "Project name: ${PROJECT_NAME}"
+    
+    - name: Clone Python repository
+      run: |
+        git clone "${{ inputs.python_repo_url }}" "temp_python_repo"
+    
+    - name: Install Python dependencies
+      run: |
+        cd py2rust
+        pip install -r requirements.txt
+    
+    - name: Convert Python to Rust
+      env:
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      run: |
+        cd py2rust
+        python main.py "../temp_python_repo" \
+          --projects-dir "../projects" \
+          --verbose
+    
+    - name: Commit and push converted project
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add projects/
+        
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          PROJECT_NAME=$(basename "${{ inputs.python_repo_url }}" .git)
+          git commit -m "Convert ${{ inputs.python_repo_url }} to Rust
+          
+          - Converted: ${{ inputs.python_repo_url }}
+          - Generated: ${PROJECT_NAME}
+          - Timestamp: $(date -u)"
+          
+          git push
+        fi
+    
+    - name: Cleanup temporary files
+      run: |
+        rm -rf temp_python_repo
+    
+    - name: Create summary
+      run: |
+        PROJECT_NAME=$(basename "${{ inputs.python_repo_url }}" .git)
+        echo "## Conversion Summary" >> $GITHUB_STEP_SUMMARY
+        echo "- **Source**: ${{ inputs.python_repo_url }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Target**: projects/${PROJECT_NAME}" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -f "projects/${PROJECT_NAME}/rust/Cargo.toml" ]; then
+          echo "- **Status**: ✅ Rust project created" >> $GITHUB_STEP_SUMMARY
+          echo "- **Python Source**: \`projects/${PROJECT_NAME}/python/\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Rust Project**: \`projects/${PROJECT_NAME}/rust/\`" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- **Status**: ❌ Conversion failed" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ -f "py2rust/conversion.log" ]; then
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Conversion Log" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -20 py2rust/conversion.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+        fi
