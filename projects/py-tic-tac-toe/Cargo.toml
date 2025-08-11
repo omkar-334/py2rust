@@ -1,0 +1,9 @@
+[package]
+name = "tic_tac_toe_rust"
+version = "0.1.0"
+edition = "2021"
+description = "A console-based Tic Tac Toe game written in Rust"
+
+[dependencies]
+rand = "0.8.5"
+anyhow = "1.0.75"
