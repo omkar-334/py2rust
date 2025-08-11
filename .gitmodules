@@ -1,0 +1,3 @@
+[submodule "projects/py-tic-tac-toe/python"]
+	path = projects/py-tic-tac-toe/python
+	url = https://github.com/FahimFBA/py-tic-tac-toe
