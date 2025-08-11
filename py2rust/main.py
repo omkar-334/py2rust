@@ -50,8 +50,8 @@ def convert_with_gemini(prompt: str) -> str:
         system_instruction=SYSTEM_PROMPT,
         temperature=0.1,
         top_p=0.95,
-        max_output_tokens=65536,
-        thinking_config=types.ThinkingConfig(thinking_budget=0)  # Disable thinking for faster response
+        max_output_tokens=65536
+        # Note: thinking_config removed as gemini-2.5-pro requires thinking mode
     )
     
     response = client.models.generate_content(

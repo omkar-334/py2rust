@@ -131,7 +131,7 @@ python main.py ./python-project --skip-compilation --dry-run
 - ✅ Massive context window (1M+ tokens)
 - ✅ High output limit (65K tokens)
 - ✅ System instructions for better guidance
-- ✅ Optimized thinking mode for faster responses
+- ✅ Advanced thinking mode for higher quality
 - ✅ Structured outputs and advanced capabilities
 
 ## Project Structure
