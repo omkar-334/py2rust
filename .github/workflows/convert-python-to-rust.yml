@@ -215,21 +215,19 @@ jobs:
         # Push branch
         git push origin "$BRANCH_NAME"
         
-        # Create PR body file to avoid shell escaping issues
-        cat > pr_body.md << EOF
-**Automated Python-to-Rust conversion using Gemini 2.5 Pro**
-
-## Build Status: ${BUILD_STATUS}
-
-${BUILD_DETAILS}
-
-## Summary
-- **Source**: ${{ inputs.python_repo_url }}
-- **Target**: projects/${PROJECT_NAME}/
-- **Generated**: $(date -u)
-
-**Powered by**: Google Gemini 2.5 Pro
-EOF
+        # Create PR body using echo to avoid YAML syntax issues
+        echo "**Automated Python-to-Rust conversion using Gemini 2.5 Pro**" > pr_body.md
+        echo "" >> pr_body.md
+        echo "## Build Status: ${BUILD_STATUS}" >> pr_body.md
+        echo "" >> pr_body.md
+        echo "${BUILD_DETAILS}" >> pr_body.md
+        echo "" >> pr_body.md
+        echo "## Summary" >> pr_body.md
+        echo "- **Source**: ${{ inputs.python_repo_url }}" >> pr_body.md
+        echo "- **Target**: projects/${PROJECT_NAME}/" >> pr_body.md
+        echo "- **Generated**: $(date -u)" >> pr_body.md
+        echo "" >> pr_body.md
+        echo "**Powered by**: Google Gemini 2.5 Pro" >> pr_body.md
 
         # Add build errors if any exist
         if [ -n "${BUILD_ERRORS:-}" ]; then
