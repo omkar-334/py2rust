@@ -1,0 +1,8 @@
+[package]
+name = "converted_project"
+version = "0.1.0"
+edition = "2021"
+description = "A console based Tic Tac Toe game"
+
+[dependencies]
+rand = "0.8.5"
