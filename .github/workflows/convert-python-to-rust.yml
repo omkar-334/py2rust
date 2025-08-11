@@ -83,6 +83,34 @@ jobs:
           --output-dir "../projects/${PROJECT_NAME}" \
           --verbose
     
+    - name: Clean up build artifacts and add gitignore
+      run: |
+        PROJECT_NAME=$(basename "${{ inputs.python_repo_url }}" .git)
+        
+        # Create .gitignore in the project directory to exclude target/
+        cat > "projects/${PROJECT_NAME}/.gitignore" << 'EOF'
+        # Rust build artifacts
+        /target/
+        
+        # Cargo lock file (optional, depending on project type)
+        # Cargo.lock
+        
+        # IDE files
+        .vscode/
+        .idea/
+        *.swp
+        *.swo
+        
+        # OS files
+        .DS_Store
+        Thumbs.db
+        EOF
+        
+        # Remove target directory (build artifacts)
+        rm -rf "projects/${PROJECT_NAME}/target"
+        
+        echo "✅ Cleaned up build artifacts and added .gitignore"
+    
     - name: Replace clone with submodule after successful compilation
       run: |
         PROJECT_NAME=$(basename "${{ inputs.python_repo_url }}" .git)
@@ -160,7 +188,8 @@ jobs:
         ├── python/       # Git submodule → ${{ inputs.python_repo_url }}
         ├── src/          # Generated Rust source code
         ├── Cargo.toml    # Rust project configuration
-        └── target/       # Compiled artifacts (if successful)
+        ├── .gitignore    # Excludes build artifacts
+        └── target/       # Build artifacts (excluded from git)
         \`\`\`
 
         ## Features
@@ -200,7 +229,8 @@ jobs:
           echo "├── python/       # Git submodule → ${{ inputs.python_repo_url }}" >> $GITHUB_STEP_SUMMARY
           echo "├── src/          # Generated Rust source code" >> $GITHUB_STEP_SUMMARY
           echo "├── Cargo.toml    # Rust project manifest" >> $GITHUB_STEP_SUMMARY
-          echo "└── target/       # Compiled artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "├── .gitignore    # Excludes target/ build artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "└── target/       # Build artifacts (excluded from git)" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
         else
           echo "- **Status**: ❌ Conversion failed" >> $GITHUB_STEP_SUMMARY
