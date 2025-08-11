@@ -34,10 +34,18 @@ jobs:
         echo "project_name=${PROJECT_NAME}" >> $GITHUB_OUTPUT
         echo "Converting: ${{ inputs.python_repo_url }}"
         echo "Project name: ${PROJECT_NAME}"
-    
-    - name: Clone Python repository
+
+    - name: Create project structure and add submodule
       run: |
-        git clone "${{ inputs.python_repo_url }}" "temp_python_repo"
+        PROJECT_NAME=$(basename "${{ inputs.python_repo_url }}" .git)
+        mkdir -p "projects/${PROJECT_NAME}"
+        cd "projects/${PROJECT_NAME}"
+        
+        # Add the Python repo as a submodule
+        git submodule add "${{ inputs.python_repo_url }}" python
+        
+        # Clone for temporary processing
+        git clone "${{ inputs.python_repo_url }}" "../../temp_python_repo"
     
     - name: Verify API key is configured
       run: |
@@ -71,14 +79,19 @@ jobs:
           echo "✅ GEMINI_API_KEY is set (length: ${#GEMINI_API_KEY})"
         fi
         
+        PROJECT_NAME=$(basename "${{ inputs.python_repo_url }}" .git)
         python main.py "../temp_python_repo" \
-          --projects-dir "../projects" \
+          --output-dir "../projects/${PROJECT_NAME}/rust" \
           --verbose
     
     - name: Commit and push converted project
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
+        
+        # Initialize and update submodules
+        git submodule update --init --recursive
+        
         git add projects/
         
         if git diff --staged --quiet; then
@@ -86,9 +99,9 @@ jobs:
         else
           PROJECT_NAME=$(basename "${{ inputs.python_repo_url }}" .git)
           git commit -m "Convert ${{ inputs.python_repo_url }} to Rust
-          
-          - Converted: ${{ inputs.python_repo_url }}
-          - Generated: ${PROJECT_NAME}
+
+          - Source: ${{ inputs.python_repo_url }} (submodule in ${PROJECT_NAME}/python)
+          - Generated: ${PROJECT_NAME}/rust
           - Timestamp: $(date -u)"
           
           git push
@@ -107,8 +120,15 @@ jobs:
         
         if [ -f "projects/${PROJECT_NAME}/rust/Cargo.toml" ]; then
           echo "- **Status**: ✅ Rust project created" >> $GITHUB_STEP_SUMMARY
-          echo "- **Python Source**: \`projects/${PROJECT_NAME}/python/\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Python Source**: \`projects/${PROJECT_NAME}/python/\` (git submodule)" >> $GITHUB_STEP_SUMMARY
           echo "- **Rust Project**: \`projects/${PROJECT_NAME}/rust/\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Project Structure" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "projects/${PROJECT_NAME}/" >> $GITHUB_STEP_SUMMARY
+          echo "├── python/     # Git submodule → ${{ inputs.python_repo_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "└── rust/       # Generated Rust project" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
         else
           echo "- **Status**: ❌ Conversion failed" >> $GITHUB_STEP_SUMMARY
         fi
