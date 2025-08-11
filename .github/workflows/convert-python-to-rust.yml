@@ -83,6 +83,31 @@ jobs:
           --output-dir "../projects/${PROJECT_NAME}" \
           --verbose
     
+    - name: Fix common Rust import issues
+      run: |
+        PROJECT_NAME=$(basename "${{ inputs.python_repo_url }}" .git)
+        PROJECT_DIR="projects/${PROJECT_NAME}"
+        
+        echo "🔧 Checking for common import issues..."
+        
+        # Check if main.rs has import errors
+        if [ -f "$PROJECT_DIR/src/main.rs" ]; then
+          # Fix common import patterns
+          sed -i 's/use converted_project::/use crate::/g' "$PROJECT_DIR/src/main.rs"
+          sed -i 's/use [a-zA-Z_][a-zA-Z0-9_]*::game::/use crate::/g' "$PROJECT_DIR/src/main.rs"
+          
+          echo "✅ Fixed potential import issues in main.rs"
+        fi
+        
+        # Try a quick compile check
+        cd "$PROJECT_DIR"
+        if ! cargo check --quiet 2>/dev/null; then
+          echo "⚠️ Still has compilation issues, but continuing..."
+        else
+          echo "✅ Compilation check passed!"
+        fi
+        cd ../..
+    
     - name: Clean up build artifacts and add gitignore
       run: |
         PROJECT_NAME=$(basename "${{ inputs.python_repo_url }}" .git)
@@ -111,23 +136,64 @@ jobs:
         
         echo "✅ Cleaned up build artifacts and added .gitignore"
     
-    - name: Replace clone with submodule after successful compilation
+    - name: Check build status and create submodule
       run: |
         PROJECT_NAME=$(basename "${{ inputs.python_repo_url }}" .git)
+        PROJECT_DIR="projects/${PROJECT_NAME}"
         
-        # Check if Rust compilation was successful
-        if [ -f "projects/${PROJECT_NAME}/Cargo.toml" ]; then
-          echo "✅ Rust compilation successful, replacing clone with submodule..."
+        # Test final compilation status
+        echo "🔍 Checking final build status..."
+        cd "$PROJECT_DIR"
+        
+        BUILD_STATUS="❌ FAILED"
+        BUILD_DETAILS=""
+        
+        if cargo check --quiet 2>build_errors.log; then
+          if cargo build --quiet 2>>build_errors.log; then
+            if cargo test --quiet 2>>build_errors.log; then
+              BUILD_STATUS="✅ SUCCESS"
+              BUILD_DETAILS="- ✅ Syntax check: PASSED\n- ✅ Compilation: SUCCESSFUL\n- ✅ Tests: PASSED"
+            else
+              BUILD_STATUS="⚠️ PARTIAL"
+              BUILD_DETAILS="- ✅ Syntax check: PASSED\n- ✅ Compilation: SUCCESSFUL\n- ❌ Tests: FAILED"
+            fi
+          else
+            BUILD_STATUS="❌ FAILED"
+            BUILD_DETAILS="- ✅ Syntax check: PASSED\n- ❌ Compilation: FAILED"
+          fi
+        else
+          BUILD_STATUS="❌ FAILED"
+          BUILD_DETAILS="- ❌ Syntax check: FAILED"
+        fi
+        
+        # Save build status for PR
+        echo "BUILD_STATUS=$BUILD_STATUS" >> $GITHUB_ENV
+        echo "BUILD_DETAILS<<EOF" >> $GITHUB_ENV
+        echo -e "$BUILD_DETAILS" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
+        
+        # Save build errors if any
+        if [ -s build_errors.log ]; then
+          echo "BUILD_ERRORS<<EOF" >> $GITHUB_ENV
+          cat build_errors.log >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+        fi
+        
+        cd ../..
+        
+        # Handle submodule based on build status
+        if [[ "$BUILD_STATUS" == "✅ SUCCESS" || "$BUILD_STATUS" == "⚠️ PARTIAL" ]]; then
+          echo "✅ Build successful/partial, replacing clone with submodule..."
           
           # Remove the cloned directory
-          rm -rf "projects/${PROJECT_NAME}/python"
+          rm -rf "$PROJECT_DIR/python"
           
           # Add as proper git submodule
-          cd "projects/${PROJECT_NAME}"
+          cd "$PROJECT_DIR"
           git submodule add "${{ inputs.python_repo_url }}" python
           cd ../..
         else
-          echo "❌ Rust compilation failed, keeping clone for debugging"
+          echo "❌ Build failed, keeping clone for debugging"
         fi
     
     - name: Create Pull Request
@@ -174,13 +240,18 @@ jobs:
         
         # Create Pull Request using GitHub CLI
         gh pr create \
-          --title "🦀 Convert ${PROJECT_NAME} from Python to Rust" \
+          --title "🦀 Convert ${PROJECT_NAME} from Python to Rust ${BUILD_STATUS}" \
           --body "**Automated Python-to-Rust conversion using Gemini 2.5 Pro**
+
+        ## Build Status: ${BUILD_STATUS}
+        
+        ${BUILD_DETAILS}
 
         ## Summary
         - **Source Repository**: ${{ inputs.python_repo_url }}
         - **Project**: \`projects/${PROJECT_NAME}/\`
         - **Generated**: $(date -u)
+        - **Build Status**: ${BUILD_STATUS}"
 
         ## Structure
         \`\`\`
@@ -196,9 +267,18 @@ jobs:
         - ✅ Complete Rust project with proper Cargo.toml
         - ✅ Idiomatic Rust code using ownership system
         - ✅ Error handling with Result<T, E>
-        - ✅ Compiled and tested automatically
-        - ✅ Formatted with \`cargo fmt\`
-        - ✅ Linted with \`cargo clippy\`
+        - ✅ Automatic compilation and testing
+        - ✅ Clean project structure
+        - ✅ Git submodule integration
+
+        $(if [ -n \"${BUILD_ERRORS:-}\" ]; then
+          echo \"## Build Errors\"
+          echo \"\`\`\`\"
+          echo \"${BUILD_ERRORS}\"
+          echo \"\`\`\`\"
+          echo \"\"
+          echo \"💡 **Next Steps**: Review and fix the compilation errors above.\"
+        fi)
 
         **Generated by**: [Python to Rust Converter](https://github.com/${{ github.repository }})
         **Powered by**: Google Gemini 2.5 Pro" \
@@ -220,6 +300,7 @@ jobs:
         
         if [ -f "projects/${PROJECT_NAME}/Cargo.toml" ]; then
           echo "- **Status**: ✅ Rust project created" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build Status**: ${BUILD_STATUS}" >> $GITHUB_STEP_SUMMARY
           echo "- **Python Source**: \`projects/${PROJECT_NAME}/python/\` (git submodule)" >> $GITHUB_STEP_SUMMARY
           echo "- **Rust Project**: \`projects/${PROJECT_NAME}/\` (direct)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
