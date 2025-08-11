@@ -28,9 +28,9 @@ class RustCompiler:
         except (subprocess.TimeoutExpired, FileNotFoundError):
             self.logger.warning("Rust toolchain not found. Install from https://rustup.rs/")
     
-    def save_rust_project(self, llm_response: str, output_dir: Path) -> Path:
+    def save_rust_project(self, llm_response: str, project_dir: Path) -> Path:
         """Parse LLM response and save as a Rust project."""
-        self.logger.info(f"Saving Rust project to {output_dir}")
+        self.logger.info(f"Saving Rust project to {project_dir}")
         
         files = self._parse_llm_response(llm_response)
         if not files:
@@ -41,13 +41,11 @@ class RustCompiler:
             self.logger.warning("No Cargo.toml found, creating default")
             files['Cargo.toml'] = self._create_default_cargo_toml()
         
-        # Create project
-        project_name = self._extract_project_name(files.get('Cargo.toml', ''))
-        project_dir = output_dir / project_name
+        # Use output directory directly (don't create nested project folder)
+        project_dir = output_dir
         
-        if project_dir.exists():
-            shutil.rmtree(project_dir)
-        project_dir.mkdir(parents=True)
+        if not project_dir.exists():
+            project_dir.mkdir(parents=True)
         
         # Save all files
         for file_path, content in files.items():
