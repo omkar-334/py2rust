@@ -38,6 +38,20 @@ jobs:
       run: |
         git clone "${{ inputs.python_repo_url }}" "temp_python_repo"
     
+    - name: Verify API key is configured
+      run: |
+        if [ -z "${{ secrets.GEMINI_API_KEY }}" ]; then
+          echo "❌ GEMINI_API_KEY secret is not configured"
+          echo "Please add your Gemini API key to repository secrets:"
+          echo "1. Go to Settings → Secrets and variables → Actions"
+          echo "2. Click 'New repository secret'"
+          echo "3. Name: GEMINI_API_KEY"
+          echo "4. Value: Your Gemini API key from https://aistudio.google.com/"
+          exit 1
+        else
+          echo "✅ GEMINI_API_KEY secret is configured"
+        fi
+    
     - name: Install Python dependencies
       run: |
         cd py2rust
@@ -46,8 +60,16 @@ jobs:
     - name: Convert Python to Rust
       env:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      working-directory: py2rust
       run: |
-        cd py2rust
+        echo "Checking environment variables..."
+        if [ -z "$GEMINI_API_KEY" ]; then
+          echo "❌ GEMINI_API_KEY is not set"
+          exit 1
+        else
+          echo "✅ GEMINI_API_KEY is set (length: ${#GEMINI_API_KEY})"
+        fi
+        
         python main.py "../temp_python_repo" \
           --projects-dir "../projects" \
           --verbose
