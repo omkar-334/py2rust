@@ -1,3 +1,6 @@
 [submodule "projects/py-tic-tac-toe/python"]
 	path = projects/py-tic-tac-toe/python
 	url = https://github.com/FahimFBA/py-tic-tac-toe
+[submodule "projects/kindle-clippings/python"]
+	path = projects/kindle-clippings/python
+	url = https://github.com/lvzon/kindle-clippings

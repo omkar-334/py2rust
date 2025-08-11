@@ -1,0 +1,19 @@
+[package]
+name = "kindle-clippings-extractor"
+version = "0.1.0"
+edition = "2021"
+authors = ["Rust Conversion Expert"]
+description = "A Rust tool to extract and organise highlights from a Kindle's 'My Clippings.txt' file."
+license = "GPL-3.0-or-later"
+
+[dependencies]
+anyhow = "1.0"
+clap = { version = "4.4", features = ["derive"] }
+chrono = "0.4"
+filetime = "0.2"
+once_cell = "1.18"
+regex = "1.10"
+sha2 = "0.10"
+unicode-normalization = "0.1.22"
+users = "0.11"
+walkdir = "2.4"
