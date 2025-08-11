@@ -102,40 +102,51 @@ Return the fixed code in the same format as the original (with ```toml and ```ru
 def iterative_compile_with_fixes(project_path: Path, initial_rust_code: str, max_retries: int = 3) -> bool:
     """Attempt to compile Rust code, using LLM to fix errors if needed."""
     logger = logging.getLogger(__name__)
-    rust_compiler = RustCompiler()
     
-    current_rust_code = initial_rust_code
-    
-    for attempt in range(max_retries + 1):
-        logger.info(f"🔄 Compilation attempt {attempt + 1}/{max_retries + 1}")
+    try:
+        rust_compiler = RustCompiler()
+        current_rust_code = initial_rust_code
         
-        # Try compilation
-        success, errors = rust_compiler.compile_and_get_errors(project_path)
-        
-        if success:
-            logger.info(f"✅ Compilation successful on attempt {attempt + 1}!")
-            return True
-        
-        if attempt >= max_retries:
-            logger.error(f"❌ Failed after {max_retries + 1} attempts")
-            logger.error(f"Final errors: {errors}")
-            return False
-        
-        # Use LLM to fix the errors
-        logger.info(f"⚠️ Compilation failed, attempting LLM fix...")
-        try:
-            fixed_rust_code = fix_compilation_errors_with_llm(current_rust_code, errors)
+        # Simple loop: 3 attempts total
+        for attempt in range(max_retries):
+            logger.info(f"🔄 Compilation attempt {attempt + 1}/{max_retries}")
             
-            # Save the fixed code
-            logger.info(f"💾 Saving fixed code (attempt {attempt + 2})")
-            rust_compiler.save_rust_project(fixed_rust_code, project_path)
-            current_rust_code = fixed_rust_code
+            # Try compilation
+            success, errors = rust_compiler.compile_and_get_errors(project_path)
             
-        except Exception as e:
-            logger.error(f"❌ LLM fix failed: {e}")
-            return False
-    
-    return False
+            if success:
+                logger.info(f"✅ Compilation successful on attempt {attempt + 1}!")
+                return True
+            
+            logger.warning(f"❌ Attempt {attempt + 1} failed: {errors[:200]}...")
+            
+            # If this was the last attempt, don't try to fix
+            if attempt >= max_retries - 1:
+                logger.error(f"❌ Failed after {max_retries} attempts")
+                logger.error(f"Final compilation errors: {errors}")
+                return False
+            
+            # Try LLM fix for next attempt
+            logger.info(f"🤖 Calling LLM to fix errors for attempt {attempt + 2}...")
+            try:
+                fixed_rust_code = fix_compilation_errors_with_llm(current_rust_code, errors)
+                
+                # Save the fixed code
+                logger.info(f"💾 Saving LLM-fixed code for attempt {attempt + 2}")
+                rust_compiler.save_rust_project(fixed_rust_code, project_path)
+                current_rust_code = fixed_rust_code
+                
+            except Exception as e:
+                logger.error(f"❌ LLM fix failed: {e}")
+                # Continue to next attempt anyway
+                continue
+        
+        return False
+        
+    except Exception as e:
+        logger.error(f"❌ Critical error in iterative compilation: {e}")
+        logger.exception("Full traceback:")
+        return False
 
 
 def extract_repo_name(repo_path: str) -> str:
@@ -220,7 +231,7 @@ def main():
         
         compilation_success = True
         if not args.skip_compilation:
-            logger.info("Compiling with iterative error fixing (up to 3 retries)...")
+            logger.info("🔄 USING NEW ITERATIVE COMPILATION SYSTEM - Starting iterative error fixing (up to 3 retries)...")
             compilation_success = iterative_compile_with_fixes(rust_project_path, rust_code, max_retries=3)
         
         # Organize if needed
