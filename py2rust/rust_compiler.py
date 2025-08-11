@@ -41,8 +41,6 @@ class RustCompiler:
             self.logger.warning("No Cargo.toml found, creating default")
             files['Cargo.toml'] = self._create_default_cargo_toml()
         
-        # Use output directory directly (don't create nested project folder)
-        project_dir = output_dir
         
         if not project_dir.exists():
             project_dir.mkdir(parents=True)

@@ -35,17 +35,16 @@ jobs:
         echo "Converting: ${{ inputs.python_repo_url }}"
         echo "Project name: ${PROJECT_NAME}"
 
-    - name: Create project structure and add submodule
+    - name: Create project structure and clone repository
       run: |
         PROJECT_NAME=$(basename "${{ inputs.python_repo_url }}" .git)
         mkdir -p "projects/${PROJECT_NAME}"
-        cd "projects/${PROJECT_NAME}"
         
-        # Add the Python repo as a submodule
-        git submodule add "${{ inputs.python_repo_url }}" python
+        # Clone Python repo into project directory for processing
+        git clone "${{ inputs.python_repo_url }}" "projects/${PROJECT_NAME}/python"
         
-        # Clone for temporary processing
-        git clone "${{ inputs.python_repo_url }}" "../../temp_python_repo"
+        # Also clone for temporary processing (main.py expects this path)
+        git clone "${{ inputs.python_repo_url }}" "temp_python_repo"
     
     - name: Verify API key is configured
       run: |
@@ -84,6 +83,25 @@ jobs:
           --output-dir "../projects/${PROJECT_NAME}" \
           --verbose
     
+    - name: Replace clone with submodule after successful compilation
+      run: |
+        PROJECT_NAME=$(basename "${{ inputs.python_repo_url }}" .git)
+        
+        # Check if Rust compilation was successful
+        if [ -f "projects/${PROJECT_NAME}/Cargo.toml" ]; then
+          echo "✅ Rust compilation successful, replacing clone with submodule..."
+          
+          # Remove the cloned directory
+          rm -rf "projects/${PROJECT_NAME}/python"
+          
+          # Add as proper git submodule
+          cd "projects/${PROJECT_NAME}"
+          git submodule add "${{ inputs.python_repo_url }}" python
+          cd ../..
+        else
+          echo "❌ Rust compilation failed, keeping clone for debugging"
+        fi
+    
     - name: Create Pull Request
       run: |
         PROJECT_NAME=$(basename "${{ inputs.python_repo_url }}" .git)
@@ -92,8 +110,10 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         
-        # Initialize and update submodules
-        git submodule update --init --recursive
+        # Initialize and update submodules (if any exist)
+        if [ -f .gitmodules ]; then
+          git submodule update --init --recursive
+        fi
         
         # Create and switch to new branch
         git checkout -b "$BRANCH_NAME"
