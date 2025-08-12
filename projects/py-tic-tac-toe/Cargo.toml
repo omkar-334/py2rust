@@ -1,0 +1,8 @@
+[package]
+name = "tic_tac_toe_rust"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Used for randomly selecting the first player
+rand = "0.8"
